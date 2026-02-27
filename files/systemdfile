@@ -1,0 +1,12 @@
+[Unit]
+Description=GNU Network Manager
+After=network.target
+
+[Service]
+ExecStart= /bin/libnetctl
+Type=simple
+Restart=always
+RestartSec=120
+
+[Install]
+WantedBy=default.target

