@@ -101,12 +101,12 @@ def main():
                     session = create_windows_session(host, f"{domain}\\{windows_domain_admin}", password)
                     if session is not None:
                         found_session = True
-                        windows_execute(session, host)
+                        windows_execute(session)
                     else:
                         session = create_windows_session(host, local_admin, password)
                         if session is not None:
                             found_session = True
-                            windows_execute(session, host)
+                            windows_execute(session)
 
         for host in linux_machines:
             for password in linux_credentials:
